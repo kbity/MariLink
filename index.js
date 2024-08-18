@@ -90,8 +90,8 @@ client.on('messageCreate', async (message) => {
             const targetChannel = await client.channels.fetch(targetChannelId);
             if (targetChannel) {
 
-                let mirroredContent = `${message.author.username}: ${sanitizePings(message.content)}`;
-                let mirroredContenthooked = `${sanitizePings(message.content)}`;
+                let mirroredContent = `${message.author.username}: ${message.content}`;
+                let mirroredContenthooked = `${message.content}`;
 
                 message.attachments.forEach(attachment => {
                     mirroredContent += `\n\nAttachment: ${attachment.url}`;
@@ -109,19 +109,21 @@ client.on('messageCreate', async (message) => {
                         content: mirroredContenthooked,
                         username: `${message.author.username} [Via MariLink]`,
                         avatarURL: message.author.displayAvatarURL({ format: 'png' }),
+                        allowedMentions: { parse: [] } // Prevent pings via webhooks
                     });
                 } else {
-                    await targetChannel.send(mirroredContent);
+                    await targetChannel.send({
+                        content: mirroredContent,
+                        allowedMentions: { parse: [] } // Prevent pings via normal message
+                    });
                 }
             }
         } catch (error) {
-            // Log the error but continue with the next target channel
             console.error(`Error fetching or sending to channel ID ${targetChannelId}:`, error);
-            continue; // Skip to the next target channel
+            continue;
         }
     }
 });
-
 
 async function getWebhook(channel, author) {
     try {
@@ -139,14 +141,6 @@ async function getWebhook(channel, author) {
         console.error('Error getting/creating webhook:', error);
         return null;
     }
-}
-
-function sanitizePings(content) {
-    // Replace @everyone, @here, and any @user mentions to avoid pings
-    return content
-        .replace(/@everyone/g, '＠everyone')
-        .replace(/@here/g, '＠here')
-        .replace(/<@(\d+)>/g, '<＠$1>'); // For user mentions, replace @ with ＠
 }
 
 client.login(token);
