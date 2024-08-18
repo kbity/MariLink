@@ -1,9 +1,9 @@
 process.on('uncaughtException', function(exception) {
-    console.log(exception)
+    console.log(exception);
 });
 
-const { fetch, setGlobalDispatcher, Agent } = require ('undici')
-setGlobalDispatcher(new Agent({ connect: { timeout: 60_000 } }) )
+const { fetch, setGlobalDispatcher, Agent } = require('undici');
+setGlobalDispatcher(new Agent({ connect: { timeout: 60_000 } }));
 
 const fs = require('fs');
 const path = require('node:path');
@@ -15,9 +15,7 @@ const {
     GatewayIntentBits,
     createWebhook
 } = require('discord.js');
-const {
-    token
-} = require('./config.json');
+const { token } = require('./config.json');
 
 const client = new Client({
     intents: [
@@ -59,14 +57,10 @@ for (const file of eventFiles) {
 }
 
 client.on('messageCreate', async (message) => {
-    // Check if the message is sent by the Marilink bot or a webhook
     if (message.author.id === '1225905087352672298' || message.webhookId) {
-        return; // Skip processing messages sent by the Marilink bot or webhooks
+        return;
     }
 
-    // console.log('[DEBUG] Message read'); uncomment for debug
-
-    // Read the existing data from db.json
     let dbData = {};
     try {
         dbData = JSON.parse(fs.readFileSync('db.json'));
@@ -75,7 +69,6 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    // Find the MariLink Channel configuration for the message's channel
     let messageChannelId = message.channel.id;
     let messageChannelConfig = null;
 
@@ -87,47 +80,48 @@ client.on('messageCreate', async (message) => {
     }
 
     if (!messageChannelConfig) {
-        return; // Exit if the message channel is not linked to any MariLink Channel
+        return;
     }
 
-    // Get the target channel IDs for mirroring
     let targetChannelIds = messageChannelConfig.discordChannelIds.filter(channelId => channelId !== messageChannelId);
 
-    // Mirror the message to the target channels
     for (const targetChannelId of targetChannelIds) {
-        const targetChannel = await client.channels.fetch(targetChannelId);
-        if (targetChannel) {
-            // console.log('[DEBUG] Mirroring message to channel:', targetChannel.name); uncomment for debug
+        try {
+            const targetChannel = await client.channels.fetch(targetChannelId);
+            if (targetChannel) {
 
-            // Prepare the content for the mirrored message
-            let mirroredContent = `${message.author.username}: ${message.content}`;
-            let mirroredContenthooked = `${message.content}`;
+                let mirroredContent = `${message.author.username}: ${sanitizePings(message.content)}`;
+                let mirroredContenthooked = `${sanitizePings(message.content)}`;
 
-            // Include attachments in the mirrored message
-            message.attachments.forEach(attachment => {
-                mirroredContent += `\n\nAttachment: ${attachment.url}`;
-                mirroredContenthooked += `\n\nAttachment: ${attachment.url}`;
-            });
+                message.attachments.forEach(attachment => {
+                    mirroredContent += `\n\nAttachment: ${attachment.url}`;
+                    mirroredContenthooked += `\n\nAttachment: ${attachment.url}`;
+                });
 
-            // Include stickers in the mirrored message
-            message.stickers.forEach(sticker => {
-                mirroredContent += `\n\nSticker: ${sticker.url}`;
-                mirroredContenthooked += `\n\nSticker: ${sticker.url}`;
-            });
+                message.stickers.forEach(sticker => {
+                    mirroredContent += `\n\nSticker: ${sticker.url}`;
+                    mirroredContenthooked += `\n\nSticker: ${sticker.url}`;
+                });
 
-            // Try using webhooks
-            let webhookClient = await getWebhook(targetChannel, message.author);
-            if (webhookClient) {
-                await webhookClient.send({
-        content: mirroredContenthooked,
-        username: `${message.author.username} [Via MariLink]`,
-        avatarURL: message.author.displayAvatarURL({ format: 'png' }),});
-            } else {
-                await targetChannel.send(mirroredContent);
+                let webhookClient = await getWebhook(targetChannel, message.author);
+                if (webhookClient) {
+                    await webhookClient.send({
+                        content: mirroredContenthooked,
+                        username: `${message.author.username} [Via MariLink]`,
+                        avatarURL: message.author.displayAvatarURL({ format: 'png' }),
+                    });
+                } else {
+                    await targetChannel.send(mirroredContent);
+                }
             }
+        } catch (error) {
+            // Log the error but continue with the next target channel
+            console.error(`Error fetching or sending to channel ID ${targetChannelId}:`, error);
+            continue; // Skip to the next target channel
         }
     }
 });
+
 
 async function getWebhook(channel, author) {
     try {
@@ -135,7 +129,6 @@ async function getWebhook(channel, author) {
         if (webhooks.size > 0) {
             return webhooks.first();
         } else {
-            // Create a new webhook using the author's information
             const webhook = await channel.createWebhook({
                 name: 'MariLink Webhook',
                 avatar: 'https://i.imgur.com/7URmN7J.png',
@@ -146,6 +139,14 @@ async function getWebhook(channel, author) {
         console.error('Error getting/creating webhook:', error);
         return null;
     }
+}
+
+function sanitizePings(content) {
+    // Replace @everyone, @here, and any @user mentions to avoid pings
+    return content
+        .replace(/@everyone/g, '＠everyone')
+        .replace(/@here/g, '＠here')
+        .replace(/<@(\d+)>/g, '<＠$1>'); // For user mentions, replace @ with ＠
 }
 
 client.login(token);
