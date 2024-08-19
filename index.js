@@ -227,7 +227,7 @@ client.on('messageCreate', async (message) => {
                     };
                 } else {
                     const sentMessage = await targetChannel.send({
-                        content: modifiedContent,
+                        content: `${message.author.username}: ${modifiedContent}`,
                         allowedMentions: { parse: [] } // Prevent pings via normal message
                     });
                     if (!messageData[message.id]) {
