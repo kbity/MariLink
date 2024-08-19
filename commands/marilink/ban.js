@@ -1,14 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 
-let banList = [];
-try {
-    const banListData = JSON.parse(fs.readFileSync('banlist.json'));
-    banList = banListData.bannedUserIds || [];
-} catch (error) {
-    console.error('Error reading banlist.json:', error);
-}
-
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ban')
@@ -70,7 +62,9 @@ module.exports = {
             if (!channelConfig.banned) {
                 channelConfig.banned = [];
             }
-            channelConfig.banned.push(userId);
+            if (!channelConfig.banned.includes(userId)) {
+                channelConfig.banned.push(userId);
+            }
             dbData[channelOption] = channelConfig;
         } else {
             // Global ban
@@ -82,25 +76,13 @@ module.exports = {
             if (!banListData.bannedUserIds.includes(userId)) {
                 banListData.bannedUserIds.push(userId);
             }
-
-            // Apply the ban across all linked servers
-            for (const guild of interaction.client.guilds.cache.values()) {
-                try {
-                    const member = await guild.members.fetch(userId);
-                    if (member) {
-                        await member.ban({ reason: 'Global ban' });
-                    }
-                } catch (error) {
-                    console.error(`Error banning user in guild ${guild.id}:`, error);
-                }
-            }
         }
 
         // Save the updated data
         fs.writeFileSync('db.json', JSON.stringify(dbData, null, 2));
         fs.writeFileSync('banlist.json', JSON.stringify(banListData, null, 2));
 
-        await interaction.reply(`${user.username} has been banned.`);
+        await interaction.reply(`${user.username} has been banned from using the bot.`);
     }
 };
 
