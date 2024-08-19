@@ -7,11 +7,11 @@ module.exports = {
         console.log(`Ready! Logged in as ${client.user.tag}`);
 
         // Initialize presence
-        client.user.setPresence({ activities: [{ name: 'Merry Christmas' }], status: 'dnd' });
+        client.user.setPresence({ activities: [{ name: 'Initializing...' }], status: 'dnd' });
 
         // Store the interval ID
         let presenceInterval = setInterval(() => {
-            client.user.setPresence({ activities: [{ name: 'MariLink v1.0.0 BETA' }], status: 'online' });
+            client.user.setPresence({ activities: [{ name: 'MariLink v1.1.0' }], status: 'online' });
         }, 1000);
 
         // Clear the interval when necessary (for example, when the bot is shutting down)

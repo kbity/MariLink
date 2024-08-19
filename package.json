@@ -1,6 +1,6 @@
 {
   "name": "marilink",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "dependencies": {
     "discord.js": "^14.14.1",
     "fs": "^0.0.1-security",
+    "node-fetch": "^3.3.2",
     "undici": "^6.11.1"
   }
 }

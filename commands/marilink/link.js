@@ -9,14 +9,14 @@ module.exports = {
             option.setName('name')
                 .setDescription('Name of the MariLink channel')
                 .setRequired(true))
-        .addStringOption(option =>
-            option.setName('password')
-                .setDescription('Password for the MariLink channel')
-                .setRequired(true))
         .addChannelOption(option =>
             option.setName('channel')
                 .setDescription('Discord channel to link')
-                .setRequired(true)),
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('password')
+                .setDescription('Password for the MariLink channel')
+                .setRequired(false)),
     async execute(interaction) {
         // Check if the user has the 'Manage Guild' or 'Administrator' permission
         if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild) &&
