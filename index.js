@@ -350,7 +350,7 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
                 } else {
                     const targetMessage = await targetChannel.messages.fetch(mirroredMessageId);
                     await targetMessage.edit({
-                        content: mirroredContenthooked
+                        content: `${message.author.username}: ${modifiedContent}`
                     });
                 }
             }
