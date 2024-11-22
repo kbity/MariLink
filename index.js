@@ -67,8 +67,18 @@ for (const file of eventFiles) {
 }
 
 client.on('messageCreate', async (message) => {
+    let maxLength = 2000;
+    if (message.reference) {
+        maxLength -= 150;
+    }
+    maxLength -= message.attachments.size * 300;
     // Reload the ban list
     let banList = [];
+    if (message.content.length > maxLength) {
+        await message.react('⚠️');
+        console.log("message too long")
+        return;
+    }
     try {
         const banListData = JSON.parse(fs.readFileSync('banlist.json'));
         banList = banListData.bannedUserIds || [];
@@ -175,39 +185,47 @@ client.on('messageCreate', async (message) => {
 
                 // Process attachments and stickers
                 message.attachments.forEach(attachment => {
-                    modifiedContent += `\n\nAttachment: <${attachment.url}>`;
+                    modifiedContent += `\n\nAttachment: ${attachment.url}`;
                 });
 
                 message.stickers.forEach(sticker => {
-                    modifiedContent += `\n\nSticker: <${sticker.url}>`;
+                    modifiedContent += `\n\nSticker: ${sticker.url}`;
                 });
 
                 // Clear and set up replyContent
                 let replyContent = '';
                 if (message.reference) {
                     const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
-                    replyContent = `> __<:reply:1274886824652832788> Reply to `;
+                    replyContent = `-# ┌ <:reply:1274886824652832788> `;
                     if (referencedMessage.webhookId) {
-                        replyContent += `${referencedMessage.author.username}:__  `;
+                        // Remove "[Via MariLink]" from the username if present
+                        const username = referencedMessage.author.username.replace(/ \[Via MariLink\]/g, "");
+                        replyContent += `**@${username}:** `;
                     } else {
-                        replyContent += `${referencedMessage.author}:__  `;
+                        replyContent += `${referencedMessage.author}: `;
                     }
                     const contentLines = referencedMessage.content.split('\n');
                     let replyText = contentLines[0];
-                    const urlRegex = /(https?:\/\/[^ ]+)/g;
+                    const urlRegex = /(https?:\/\/[^<>]+)/g;
 
-                    // Carrot links inside the reply block
-                    replyText = replyText.replace(urlRegex, '<$1>');
-
-                    if (replyText.length > 256) {
-                        replyText = replyText.substring(0, 256) + '...';
+                    // Check if the first line starts with "-# ┌"
+                    if (contentLines[0].startsWith("-# ┌")) {
+                        // Skip the first line and use the second line instead
+                        if (contentLines.length > 1) {
+                        replyText = contentLines[1];
+                        } else {
+                        replyText = '';
                     }
+                const urlRegex = /(https?:\/\/[^<>]+)/g;
+                replyText = replyText.replace(urlRegex, '<$1>');
+                    if (replyText.length > 128) {
+                        replyText = replyText.substring(0, 128) + '...';
+                    }
+                }
                     replyContent += replyText;
                     modifiedContent = `${replyContent}\n${modifiedContent}`;
-                }
 
-                // Avoid carrot links outside the reply block
-                modifiedContent = modifiedContent.replace(/<(https?:\/\/[^ ]+)>/g, '$1');
+                }
 
                 let webhookClient = await getWebhook(targetChannel, message.author);
                 if (webhookClient) {
@@ -315,31 +333,35 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
 
                 if (newMessage.reference) {
                     const referencedMessage = await newMessage.channel.messages.fetch(newMessage.reference.messageId);
-                    let replyContent = `> __<:reply:1274886824652832788> Reply to `;
+                    replyContent = `-# ┌ <:reply:1274886824652832788> `;
                     if (referencedMessage.webhookId) {
-                        replyContent += `${referencedMessage.author.username}:__  `;
+                        // Remove "[Via MariLink]" from the username if present
+                        const username = referencedMessage.author.username.replace(/ \[Via MariLink\]/g, "");
+                        replyContent += `**@${username}:** `;
                     } else {
-                        replyContent += `${referencedMessage.author}:__  `;
+                        replyContent += `${referencedMessage.author}: `;
                     }
                     const contentLines = referencedMessage.content.split('\n');
                     let replyText = contentLines[0];
-                    const urlRegex = /(https?:\/\/[^ ]+)/g;
-                    const urlMatch = replyText.match(urlRegex);
-                    if (urlMatch) {
-                        replyText = replyText.replace(urlRegex, (url) => {
-                            if (url.length > 256) {
-                                const mask = `sttp://${url.substring(url.indexOf('://') + 3, 256 - 3)}...`;
-                                return `${mask}`;
-                            } else {
-                                return url;
-                            }
-                        });
+                    const urlRegex = /(https?:\/\/[^<>]+)/g;
+
+                    // Check if the first line starts with "-# ┌"
+                    if (contentLines[0].startsWith("-# ┌")) {
+                        // Skip the first line and use the second line instead
+                        if (contentLines.length > 1) {
+                        replyText = contentLines[1];
+                        } else {
+                        replyText = '';
                     }
-                    if (replyText.length > 256) {
-                        replyText = replyText.substring(0, 256) + '...';
+                const urlRegex = /(https?:\/\/[^<>]+)/g;
+                replyText = replyText.replace(urlRegex, '<$1>');
+                    if (replyText.length > 128) {
+                        replyText = replyText.substring(0, 128) + '...';
                     }
+                }
                     replyContent += replyText;
                     mirroredContenthooked = `${replyContent}\n${mirroredContenthooked}`;
+
                 }
 
                 if (webhookId && webhookToken) {
@@ -391,10 +413,12 @@ client.on('messageDelete', async (message) => {
     }
 
     if (!messageChannelConfig) {
+        console.log('No configuration found for this channel. Skipping deletion.');
         return;
     }
 
     if (messageChannelConfig.banned && messageChannelConfig.banned.includes(message.author.id)) {
+        console.log('Author of the deleted message is banned. Skipping deletion.');
         return;
     }
 
@@ -415,16 +439,19 @@ client.on('messageDelete', async (message) => {
     for (const targetChannelId of Object.keys(mirroredMessages)) {
         try {
             const targetChannel = await client.channels.fetch(targetChannelId);
-            if (targetChannel) {
-                const { id: mirroredMessageId, webhookId, webhookToken } = mirroredMessages[targetChannelId];
+            if (!targetChannel) {
+                console.log(`Target channel ${targetChannelId} not found.`);
+                continue;
+            }
 
-                if (webhookId && webhookToken) {
-                    const webhookClient = new WebhookClient({ id: webhookId, token: webhookToken });
-                    await webhookClient.deleteMessage(mirroredMessageId);
-                } else {
-                    const targetMessage = await targetChannel.messages.fetch(mirroredMessageId);
-                    await targetMessage.delete();
-                }
+            const { id: mirroredMessageId, webhookId, webhookToken } = mirroredMessages[targetChannelId];
+
+            if (webhookId && webhookToken) {
+                const webhookClient = new WebhookClient({ id: webhookId, token: webhookToken });
+                await webhookClient.deleteMessage(mirroredMessageId);
+            } else {
+                const targetMessage = await targetChannel.messages.fetch(mirroredMessageId);
+                await targetMessage.delete();
             }
         } catch (error) {
             console.error(`Error deleting mirrored message in channel ID ${targetChannelId}:`, error);
@@ -432,19 +459,23 @@ client.on('messageDelete', async (message) => {
     }
 
     delete messageData[message.id];
-    fs.writeFileSync('messages.json', JSON.stringify(messageData, null, 2));
+    try {
+        fs.writeFileSync('messages.json', JSON.stringify(messageData, null, 2));
+    } catch (error) {
+        console.error('Error writing to messages.json:', error);
+    }
 });
-
-
 
 async function getWebhook(channel, author) {
     try {
         const webhooks = await channel.fetchWebhooks();
-        if (webhooks.size > 0) {
-            return webhooks.first();
+        const botWebhook = webhooks.find(webhook => webhook.owner && webhook.owner.id === channel.client.user.id);
+        
+        if (botWebhook) {
+            return botWebhook;
         } else {
             const webhook = await channel.createWebhook({
-                name: 'MariLink Webhook',
+                name: 'one of the Mari Links',
                 avatar: 'https://i.imgur.com/7URmN7J.png',
             });
             return webhook;

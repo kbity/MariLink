@@ -79,18 +79,6 @@ module.exports = {
             }
 
             banListData.bannedUserIds = banListData.bannedUserIds.filter(id => id !== userId);
-
-            // Remove the ban across all linked servers
-            for (const guild of interaction.client.guilds.cache.values()) {
-                try {
-                    const member = await guild.members.fetch(userId);
-                    if (member) {
-                        await guild.members.unban(userId, 'Global unban');
-                    }
-                } catch (error) {
-                    console.error(`Error unbanning user in guild ${guild.id}:`, error);
-                }
-            }
         }
 
         // Save the updated data

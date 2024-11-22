@@ -1,4 +1,4 @@
 {
-	"token": "Token.blah.blah-blad52gn436_5236.24626y.itkindalookslikethis_botnotreally",
-	"clientId": "this is your client ID. also add to banlist.json"
+	"token": "token",
+	"clientId": "applicationclientID"
 }

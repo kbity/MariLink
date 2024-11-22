@@ -1,12 +1,12 @@
 const { SlashCommandBuilder } = require('discord.js');
 
-const CURRENT_VERSION = 'v1.1.3';
+const CURRENT_VERSION = 'v1.2.0';
 const REPO_URL = 'https://api.github.com/repos/kbity/MariLink/releases/latest';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ver')
-        .setDescription('Gets MariLink version Version'),
+        .setDescription('Gets MariLink Version'),
     async execute(interaction) {
         try {
             // Dynamically import node-fetch
