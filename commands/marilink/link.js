@@ -18,6 +18,20 @@ module.exports = {
                 .setDescription('Password for the MariLink channel')
                 .setRequired(false)),
     async execute(interaction) {
+        let banList = [];
+        try {
+            const banListData = JSON.parse(fs.readFileSync('banlist.json'));
+            banList = banListData.bannedUserIds || [];
+        } catch (error) {
+            console.error('Error reading banlist.json:', error);
+        }
+
+        // Check if the user is banned
+        if (banList.includes(interaction.user.id)) {
+            console.error(`Banned user ${interaction.user.id} attempted to use the /link command.`);
+            return interaction.reply({ content: '``` The AC power adapter wattage and type cannot be determined.\n The battery may not charge.\n The system will adjust to performance to match the power available.\n\n Please connect a Dell 65W AC adapter or greater for best system performance.\n\n To resolve this issue, try to reseat the power adapter.\n\n Strike the F3 key (before the F1 or F2 key) if you do not want to see \n power warning messages again\n\n Strike the F1 key to continue, F2 to run the setup utility\n Press F5 to run onboard diagnostics.\n```', ephemeral: false });
+        }
+
         // Check if the user has the 'Manage Guild' or 'Administrator' permission
         if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild) &&
             !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {

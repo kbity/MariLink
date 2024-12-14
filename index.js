@@ -66,19 +66,31 @@ for (const file of eventFiles) {
     }
 }
 
-client.on('messageCreate', async (message) => {
-    let maxLength = 2000;
-    if (message.reference) {
-        maxLength -= 150;
-    }
-    maxLength -= message.attachments.size * 300;
-    // Reload the ban list
+//leave servers where owner is banned
+client.on('guildCreate', async (guild) => {
     let banList = [];
-    if (message.content.length > maxLength) {
-        await message.react('⚠️');
-        console.log("message too long")
+    try {
+        const banListData = JSON.parse(fs.readFileSync('banlist.json'));
+        banList = banListData.bannedUserIds || [];
+    } catch (error) {
+        console.error('Error reading banlist.json:', error);
         return;
     }
+
+    try {
+        const owner = await guild.fetchOwner(); // Fetch the server owner
+        if (banList.includes(owner.id)) {
+            console.log(`Leaving server "${guild.name}" because the owner is banned.`);
+            await guild.leave();
+        }
+    } catch (error) {
+        console.error(`Error while processing guild "${guild.name}":`, error);
+    }
+});
+
+client.on('messageCreate', async (message) => {
+
+    let banList = [];
     try {
         const banListData = JSON.parse(fs.readFileSync('banlist.json'));
         banList = banListData.bannedUserIds || [];
@@ -118,6 +130,17 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
+    let maxLength = 2000;
+    if (message.reference) {
+        maxLength -= 150;
+    }
+    maxLength -= message.attachments.size * 300;
+
+    if (message.content.length > maxLength) {
+        await message.react('⚠️');
+        console.log("message too long")
+        return;
+    }
     // Check for local bans
     if (messageChannelConfig.banned && messageChannelConfig.banned.includes(message.author.id)) {
         return;
@@ -220,8 +243,8 @@ client.on('messageCreate', async (message) => {
                 replyText = replyText.replace(urlRegex, '<$1>');
                     if (replyText.length > 128) {
                         replyText = replyText.substring(0, 128) + '...';
-                    }
-                }
+                    }   
+                } if (banList.includes(referencedMessage.author.id)) { replyText = '*[Blocked Message]*' }
                     replyContent += replyText;
                     modifiedContent = `${replyContent}\n${modifiedContent}`;
 

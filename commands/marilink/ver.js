@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 
-const CURRENT_VERSION = 'v1.2.0';
+const CURRENT_VERSION = 'v1.2.1';
 const REPO_URL = 'https://api.github.com/repos/kbity/MariLink/releases/latest';
 
 module.exports = {
