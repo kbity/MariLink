@@ -1,3 +1,9 @@
+> # NOTICE
+> MariLink is no longer being maintained
+> The Codebase is far to mangled and nonsencial for me to understand
+> Use https://github.com/kbity/MariLink-CE instead
+
+
 # MariLink
 MariLink - a bot that links different discord channels together accros servers
 
